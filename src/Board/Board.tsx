@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import {
   randomIntFromInterval,
   reverseLinkedList,
@@ -11,6 +11,10 @@ import { Direction } from "../types/Direction"
 import "./Board.css"
 import { Coordinate } from "../types/Coordinate"
 import { ArrowKey } from "../types/ArrowKey.js"
+import {
+  BOARD_SIZE,
+  PROBABILITY_OF_DIRECTION_REVERSAL_FOOD,
+} from "../constants.js"
 
 /**
  * TODO: add a more elegant UX for before a game starts and after a game ends.
@@ -18,9 +22,6 @@ import { ArrowKey } from "../types/ArrowKey.js"
  * once a game is over, the board state should likely freeze until the user
  * intentionally restarts the game.
  */
-
-const BOARD_SIZE = 10
-const PROBABILITY_OF_DIRECTION_REVERSAL_FOOD = 0.3
 
 const getStartingSnakeLLValue = (board: number[][]): CellValue => {
   const rowSize = board.length
@@ -37,7 +38,9 @@ const getStartingSnakeLLValue = (board: number[][]): CellValue => {
 
 const Board = () => {
   const [score, setScore] = useState(0)
-  const [board, setBoard] = useState(createBoard(BOARD_SIZE))
+  const [board, _] = useState(createBoard(BOARD_SIZE))
+  const [hasStarted, setHasStarted] = useState(false)
+
   const [snake, setSnake] = useState(
     new LinkedList(getStartingSnakeLLValue(board))
   )
@@ -59,11 +62,15 @@ const Board = () => {
   // `useInterval` is needed; you can't naively do `setInterval` in the
   // `useEffect` above. See the article linked above the `useInterval`
   // definition for details.
-  useInterval(() => {
-    moveSnake()
-  }, 150)
+  useInterval(
+    () => {
+      moveSnake()
+    },
+    hasStarted ? 150 : null
+  )
 
   const handleKeydown = (e: KeyboardEvent): void => {
+    setHasStarted(true)
     const newDirection = getDirectionFromKey(e.key as ArrowKey)
     const isValidDirection = newDirection !== null
     if (!isValidDirection) return
@@ -162,10 +169,6 @@ const Board = () => {
   const handleFoodConsumption = (newSnakeCells: Set<number>) => {
     const maxPossibleCellValue = BOARD_SIZE * BOARD_SIZE
     let nextFoodCell
-    // In practice, this will never be a time-consuming operation. Even
-    // in the extreme scenario where a snake is so big that it takes up 90%
-    // of the board (nearly impossible), there would be a 10% chance of generating
-    // a valid new food cell--so an average of 10 operations: trivial.
     while (true) {
       nextFoodCell = randomIntFromInterval(1, maxPossibleCellValue)
       if (newSnakeCells.has(nextFoodCell) || foodCell === nextFoodCell) continue
@@ -182,6 +185,7 @@ const Board = () => {
 
   const handleGameOver = () => {
     setScore(0)
+    setHasStarted(false)
     const snakeLLStartingValue = getStartingSnakeLLValue(board)
     setSnake(new LinkedList(snakeLLStartingValue))
     setFoodCell(snakeLLStartingValue.cell + 5)
@@ -191,7 +195,22 @@ const Board = () => {
 
   return (
     <>
-      <h1>Score: {score}</h1>
+      <div>
+        <div>
+          <h1>Score: {score}</h1>
+          <p>Press any key to start</p>
+        </div>
+        <div className="insturctions">
+          <div>
+            Eating purple block reverses snake
+            <div className="purple-block" />
+          </div>
+          <div>
+            Eating red block grows snake
+            <div className="red-block" />
+          </div>
+        </div>
+      </div>
       <div className="board">
         {board.map((row, rowIdx) => (
           <div key={rowIdx} className="row">

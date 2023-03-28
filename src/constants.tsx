@@ -1,0 +1,2 @@
+export const BOARD_SIZE = 10
+export const PROBABILITY_OF_DIRECTION_REVERSAL_FOOD = 0.3
